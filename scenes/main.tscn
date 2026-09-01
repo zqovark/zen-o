@@ -1,0 +1,66 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/test_arena.gd" id="3_arena"]
+[ext_resource type="Script" path="res://scripts/zeno_threshold_system.gd" id="4_threshold"]
+[ext_resource type="Script" path="res://scripts/world_state_controller.gd" id="5_state"]
+[ext_resource type="Script" path="res://scripts/transformation_director.gd" id="6_director"]
+[ext_resource type="Script" path="res://scripts/debug_overlay.gd" id="7_overlay"]
+[ext_resource type="Script" path="res://scripts/threshold_visualizer.gd" id="8_visualizer"]
+[ext_resource type="Script" path="res://scripts/spatial_state_preview.gd" id="9_preview"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.012, 0.016, 0.028, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.42, 0.48, 0.62, 1)
+ambient_light_energy = 0.58
+tonemap_mode = 2
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -32, 0)
+light_color = Color(0.79, 0.86, 1, 1)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="TestArena" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("3_arena")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+unique_name_in_owner = true
+position = Vector3(0, 1, 2)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Systems" type="Node" parent="."]
+
+[node name="ZenoThresholdSystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("4_threshold")
+
+[node name="WorldStateController" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("5_state")
+
+[node name="TransformationDirector" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("6_director")
+
+[node name="ThresholdVisualizer" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("8_visualizer")
+
+[node name="SpatialStatePreview" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("9_preview")
+
+[node name="DebugOverlay" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+script = ExtResource("7_overlay")
