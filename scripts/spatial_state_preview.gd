@@ -51,9 +51,10 @@ func _rebuild() -> void:
 
 		for source_child in source.get_children():
 			if source_child is MeshInstance3D:
+				var source_mesh := source_child as MeshInstance3D
 				var ghost_mesh := MeshInstance3D.new()
-				ghost_mesh.mesh = source_child.mesh
-				ghost_mesh.transform = source_child.transform
+				ghost_mesh.mesh = source_mesh.mesh
+				ghost_mesh.transform = source_mesh.transform
 				ghost_mesh.material_override = ghost_material
 				ghost_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				ghost_root.add_child(ghost_mesh)

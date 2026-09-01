@@ -17,6 +17,21 @@ The outer wall is both visible and collidable. Its collision moves with its
 presentation. Near landmarks respond in the opposite direction, making a uniform
 scene-scale interpretation impossible.
 
+## Perceptual playground
+
+The primitive arena is composed as three recognizable visual layers:
+
+- **Near:** four asymmetric cyan monolith clusters on diagonal rays. They move
+  inward and grow, becoming more dominant even as the player moves away from the
+  center.
+- **Mid:** three repeated violet gates along each cardinal ray. Their open travel
+  lanes remain safe while their radial gaps expand and the structures shrink.
+- **Outer:** a continuous low wall with eight tall amber teeth. The skyline makes
+  the wall's outward movement and exact reverse restoration easy to compare.
+
+Four faint fixed floor diameters and the invariant gold center beacon provide
+Euclidean references without taking ownership of the spatial law.
+
 ## Runtime flow
 
 ```text
@@ -30,7 +45,7 @@ WorldStateController
   authoritative current and previous state
         ↓ world_state_changed signal
 TransformationDirector
-  interpolates every layer toward explicit state targets
+  resolves global profiles plus the optional ANCHOR exception
         ↓
 TestArena geometry and collision
 ```
@@ -39,6 +54,50 @@ The director snapshots only the start of the current visual interpolation. Every
 target is recomputed from each object's immutable `base_position` and `base_scale`.
 Reversal during a transition is smooth, and completing any state returns the exact
 same configuration without transform drift.
+
+Moving `AnimatableBody3D` transforms are resolved in `_physics_process` with
+their automatic `sync_to_physics` restoration disabled. This keeps visible
+geometry and collision on the same interpolated transform.
+
+## ANCHOR puzzle loop
+
+ANCHOR preserves one eligible target's discrete state relation. Applying it does
+not modify world state, the four state profiles, `base_position`, or `base_scale`.
+The director substitutes the target's saved state profile while every normal
+object continues resolving from the active world profile.
+
+Single-active-anchor semantics are used. Applying ANCHOR to another target would
+release the previous target. Re-applying it to the current target replaces the
+saved state relation, allowing recovery from a wrong-state experiment without a
+restart.
+
+The puzzle uses an intentionally impossible normal alignment:
+
+- The eligible gate is a mid-layer object at base radius `17.0`. Its State-1
+  radius is `17.0 × 1.05 = 17.85`.
+- The Fragment receiver is an outer-layer object at base radius `14.875`. Its
+  State-2 radius is `14.875 × 1.20 = 17.85`.
+- Normal State 2 places the gate at `18.87`, leaving the receiver misaligned.
+- ANCHOR allows the gate's State-1 relation and the receiver's State-2 relation
+  to coexist. Only this cross-state alignment stabilizes the Fragment.
+
+The explicit objective flow is:
+
+```text
+LEARN_LAW
+→ DISCOVER_ANCHOR
+→ ANCHOR_TARGET
+→ REACH_FRAGMENT
+→ EXIT_UNLOCKED
+→ REACH_EXIT
+→ RUN_COMPLETE
+```
+
+Reaching State 2 once activates the previously dormant ANCHOR object behind the
+center, ensuring the invariant is observed before its exception is available.
+Fragment collection activates a fixed Exit near the center, making retreat part
+of the completion path. Small generated tones distinguish acquisition,
+application, resistance, collection, activation, and completion.
 
 ## Boundary behavior
 
@@ -51,3 +110,50 @@ progress) so standing or oscillating at a boundary cannot spam transitions.
 The overlay exposes state, threshold, distance, normalized progress, radial
 movement direction, player position, outer radius ratio, and transition activity.
 `F3` toggles both the overlay and threshold rings.
+
+`F4` cycles a translucent visual-only target preview through States 0, 1, 2, 3,
+then off. Preview meshes have no collision and never write to runtime transforms.
+
+The overlay includes all near/mid/outer target ratios and linear transition
+progress. Transition duration is `0.65` seconds; this is short enough to resolve
+between close outer thresholds at normal speed while retaining a readable ease.
+
+It also exposes ANCHOR acquisition/activity/target/state, objective state,
+alignment error, Fragment status, Exit status, and the currently aimed
+interaction. The crosshair turns amber when an interactable is in range.
+
+## 3–6 minute manual playtest — no solution
+
+Controls: `WASD` move, mouse look, `E` interact, `R` restart, `Esc` release the
+mouse. Leave F3/F4 diagnostics enabled only if you need to diagnose a problem.
+
+1. Establish how the cyan, violet, and outer-wall references respond while
+   moving outward through at least State 2.
+2. Inspect the distinct gate and the nearby receiver/Fragment arrangement.
+3. Look back toward and beyond the gold center; investigate any presentation
+   change you notice.
+4. Experiment with ANCHOR and movement until the Fragment stabilizes.
+5. Collect the Fragment, find the activated Exit, and complete the run. Press
+   `R` afterward to verify a clean restart.
+
+Answer:
+
+1. Did you understand what ANCHOR changed?
+2. Did the anchored gate visibly disobey the rest of the world?
+3. Did ANCHOR feel like breaking a learned rule rather than using a key?
+4. Was the solution derived through spatial reasoning rather than guessing?
+5. Did backward movement remain meaningful?
+6. Did completion feel earned?
+
+## Spoiler — intended solution
+
+1. Walk outward until State 2. Observe that the special gate and violet receiver
+   do not align; this also activates the ANCHOR pickup behind the center.
+2. Retreat through the previous states and acquire the glowing ANCHOR object with
+   `E` beyond the gold center.
+3. Return outward to State 1. Aim at either illuminated side of the eligible gate
+   and press `E`. Its gold invariant ring indicates the saved State-1 relation.
+4. Continue into State 2. The receiver moves to the gate while the anchored gate
+   resists the transition. The Fragment becomes bright and stable.
+5. Aim through the center of the gate and press `E` to collect the Fragment.
+6. Return toward the center and interact with the newly green Exit ring.

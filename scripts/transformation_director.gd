@@ -79,6 +79,15 @@ func get_target_scale_for_state(node: Node3D, state: int) -> Vector3:
 	return _target_scale_for(node, get_state_profile(state))
 
 
+func refresh_current_state() -> void:
+	if not is_instance_valid(arena):
+		return
+	_build_transition(STATE_PROFILES[active_state])
+	_elapsed = 0.0
+	transition_progress = 0.0
+	transition_active = true
+
+
 func transition_to_state(_previous: int, current: int) -> void:
 	if not is_instance_valid(arena):
 		return
@@ -95,14 +104,14 @@ func apply_state_immediately(state: int) -> void:
 	active_state = clampi(state, 0, STATE_PROFILES.size() - 1)
 	var profile: Dictionary = STATE_PROFILES[active_state]
 	for node in arena.get_transformable_nodes():
-		node.position = _target_position_for(node, profile)
-		node.scale = _target_scale_for(node, profile)
+		node.position = _resolved_target_position(node, profile)
+		node.scale = _resolved_target_scale(node, profile)
 	_update_profile_metrics(profile)
 	transition_progress = 1.0
 	transition_active = false
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not transition_active:
 		return
 	_elapsed += delta
@@ -129,9 +138,9 @@ func _build_transition(profile: Dictionary) -> void:
 	_target_scales.clear()
 	for node in _nodes:
 		_start_positions.append(node.position)
-		_target_positions.append(_target_position_for(node, profile))
+		_target_positions.append(_resolved_target_position(node, profile))
 		_start_scales.append(node.scale)
-		_target_scales.append(_target_scale_for(node, profile))
+		_target_scales.append(_resolved_target_scale(node, profile))
 	_update_profile_metrics(profile)
 
 
@@ -160,3 +169,17 @@ func _target_scale_for(node: Node3D, profile: Dictionary) -> Vector3:
 	var base_scale: Vector3 = node.get_meta("base_scale", Vector3.ONE)
 	var layer: String = node.get_meta("zeno_layer", "mid")
 	return base_scale * float(profile.get(layer + "_scale", 1.0))
+
+
+func _resolved_target_position(node: Node3D, world_profile: Dictionary) -> Vector3:
+	return _target_position_for(node, _resolve_profile_for(node, world_profile))
+
+
+func _resolved_target_scale(node: Node3D, world_profile: Dictionary) -> Vector3:
+	return _target_scale_for(node, _resolve_profile_for(node, world_profile))
+
+
+func _resolve_profile_for(node: Node3D, world_profile: Dictionary) -> Dictionary:
+	if node is AnchorableSpatialTarget and node.is_anchored:
+		return STATE_PROFILES[clampi(node.anchored_state, 0, STATE_PROFILES.size() - 1)]
+	return world_profile

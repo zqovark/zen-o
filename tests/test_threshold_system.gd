@@ -6,6 +6,10 @@ var _exited: Array[int] = []
 
 
 func _initialize() -> void:
+	_run_tests.call_deferred()
+
+
+func _run_tests() -> void:
 	var system := ZenoThresholdSystem.new()
 	root.add_child(system)
 	system.set_physics_process(false)
@@ -18,9 +22,10 @@ func _initialize() -> void:
 	_test_rapid_reversal(system)
 	_test_world_state_authority()
 	_test_transformation_determinism()
+	_test_arena_composition()
 
 	if _failures.is_empty():
-		print("PASS: ZenoThresholdSystem boundaries, reversal, and hysteresis")
+		print("PASS: thresholds, state authority, arena composition, reversal, and drift")
 		quit(0)
 	else:
 		for failure in _failures:
@@ -94,26 +99,107 @@ func _test_transformation_determinism() -> void:
 	var director := TransformationDirector.new()
 	root.add_child(director)
 	director.configure(arena)
-	director.apply_state_immediately(3)
 	var transformable_nodes := arena.get_transformable_nodes()
-	var expected_positions: Array[Vector3] = []
-	var expected_scales: Array[Vector3] = []
-	for node in transformable_nodes:
-		expected_positions.append(node.position)
-		expected_scales.append(node.scale)
+	var expected_states: Array[Dictionary] = []
+	for state in 4:
+		director.apply_state_immediately(state)
+		var positions: Array[Vector3] = []
+		var scales: Array[Vector3] = []
+		for node in transformable_nodes:
+			positions.append(node.position)
+			scales.append(node.scale)
+		expected_states.append({"positions": positions, "scales": scales})
+	var base_positions: Array[Vector3] = []
+	base_positions.assign(expected_states[0]["positions"])
 
-	director.apply_state_immediately(0)
-	director.apply_state_immediately(2)
-	director.apply_state_immediately(3)
-	for index in transformable_nodes.size():
-		_expect(
-			transformable_nodes[index].position.is_equal_approx(expected_positions[index]),
-			"State reconstruction accumulated position drift"
-		)
-		_expect(
-			transformable_nodes[index].scale.is_equal_approx(expected_scales[index]),
-			"State reconstruction accumulated scale drift"
-		)
+	for _cycle_index in 5:
+		for state in [1, 2, 3, 2, 1, 0]:
+			director.apply_state_immediately(state)
+			var expected: Dictionary = expected_states[state]
+			for index in transformable_nodes.size():
+				_expect(
+					transformable_nodes[index].position.is_equal_approx(expected["positions"][index]),
+					"Repeated traversal accumulated position drift in state %d" % state
+				)
+				_expect(
+					transformable_nodes[index].scale.is_equal_approx(expected["scales"][index]),
+					"Repeated traversal accumulated scale drift in state %d" % state
+				)
+
+	# Reversing an incomplete interpolation must begin from the rendered pose.
+	director.transition_to_state(0, 3)
+	director._physics_process(0.2)
+	var position_before_reversal := transformable_nodes[0].position
+	director.transition_to_state(3, 0)
+	_expect(
+		transformable_nodes[0].position.is_equal_approx(position_before_reversal),
+		"Rapid reversal introduced a transform jump"
+	)
+	director._physics_process(director.transition_duration)
+	_expect(
+		transformable_nodes[0].position.is_equal_approx(base_positions[0]),
+		"Rapid reversal did not resolve to the exact base pose"
+	)
+
+	# Target previews must never alter live presentation or collision roots.
+	var preview := SpatialStatePreview.new()
+	root.add_child(preview)
+	preview.configure(arena, director)
+	var position_before_preview := transformable_nodes[0].position
+	preview.cycle_preview()
+	preview.cycle_preview()
+	_expect(
+		transformable_nodes[0].position.is_equal_approx(position_before_preview),
+		"Debug state preview mutated runtime geometry"
+	)
+
+
+func _test_arena_composition() -> void:
+	var arena := TestArena.new()
+	root.add_child(arena)
+	var near_count := 0
+	var mid_count := 0
+	var outer_count := 0
+	for node in arena.get_transformable_nodes():
+		match String(node.get_meta("zeno_layer", "")):
+			"near":
+				near_count += 1
+				var base_position: Vector3 = node.get_meta("base_position")
+				_expect(
+					minf(absf(base_position.x), absf(base_position.z)) > 5.0,
+					"A growing near cluster obstructs a cardinal travel lane"
+				)
+			"mid":
+				mid_count += 1
+			"outer":
+				outer_count += 1
+				var has_visible_wall := false
+				var has_wall_collision := false
+				var wall_collision: CollisionShape3D
+				for child in node.get_children():
+					has_visible_wall = has_visible_wall or child is MeshInstance3D
+					has_wall_collision = has_wall_collision or child is CollisionShape3D
+					if child is CollisionShape3D:
+						wall_collision = child
+				_expect(
+					has_visible_wall and has_wall_collision,
+					"Outer boundary presentation and collision do not share a root"
+				)
+				if is_instance_valid(wall_collision):
+					var collision_box := wall_collision.shape as BoxShape3D
+					var found_matching_mesh := false
+					for child in node.get_children():
+						if child is MeshInstance3D and child.mesh is BoxMesh:
+							var mesh_box := child.mesh as BoxMesh
+							if (
+								child.position.is_equal_approx(wall_collision.position)
+								and mesh_box.size.is_equal_approx(collision_box.size)
+							):
+								found_matching_mesh = true
+					_expect(found_matching_mesh, "Outer wall mesh and collision are misaligned")
+	_expect(near_count == 4, "Near layer does not contain four readable clusters")
+	_expect(mid_count == 12, "Mid layer does not contain twelve repeated gates")
+	_expect(outer_count == arena.boundary_segments, "Outer wall segment count is incomplete")
 
 
 func _expect(condition: bool, message: String) -> void:

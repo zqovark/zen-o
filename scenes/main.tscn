@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -9,6 +9,10 @@
 [ext_resource type="Script" path="res://scripts/debug_overlay.gd" id="7_overlay"]
 [ext_resource type="Script" path="res://scripts/threshold_visualizer.gd" id="8_visualizer"]
 [ext_resource type="Script" path="res://scripts/spatial_state_preview.gd" id="9_preview"]
+[ext_resource type="Script" path="res://scripts/operators/operator_system.gd" id="10_operator"]
+[ext_resource type="Script" path="res://scripts/objective_manager.gd" id="11_objective"]
+[ext_resource type="Script" path="res://scripts/interactions/interaction_controller.gd" id="12_interaction"]
+[ext_resource type="Script" path="res://scripts/puzzle/anchor_puzzle_controller.gd" id="13_puzzle"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -39,6 +43,10 @@ unique_name_in_owner = true
 position = Vector3(0, 1, 2)
 rotation = Vector3(0, 3.14159, 0)
 
+[node name="AnchorPuzzle" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("13_puzzle")
+
 [node name="Systems" type="Node" parent="."]
 
 [node name="ZenoThresholdSystem" type="Node" parent="Systems"]
@@ -52,6 +60,18 @@ script = ExtResource("5_state")
 [node name="TransformationDirector" type="Node" parent="Systems"]
 unique_name_in_owner = true
 script = ExtResource("6_director")
+
+[node name="OperatorSystem" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("10_operator")
+
+[node name="ObjectiveManager" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("11_objective")
+
+[node name="InteractionController" type="Node" parent="Systems"]
+unique_name_in_owner = true
+script = ExtResource("12_interaction")
 
 [node name="ThresholdVisualizer" type="Node3D" parent="."]
 unique_name_in_owner = true

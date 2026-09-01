@@ -6,8 +6,13 @@ var _threshold_system: ZenoThresholdSystem
 var _world_state: WorldStateController
 var _director: TransformationDirector
 var _state_preview: SpatialStatePreview
+var _operator_system: OperatorSystem
+var _objective_manager: ObjectiveManager
+var _anchor_puzzle: AnchorPuzzleController
+var _interaction_controller: InteractionController
 var _panel: PanelContainer
 var _readout: Label
+var _crosshair: Label
 
 
 func _ready() -> void:
@@ -19,13 +24,21 @@ func configure(
 	threshold_system: ZenoThresholdSystem,
 	world_state: WorldStateController,
 	director: TransformationDirector,
-	state_preview: SpatialStatePreview
+	state_preview: SpatialStatePreview,
+	operator_system: OperatorSystem,
+	objective_manager: ObjectiveManager,
+	anchor_puzzle: AnchorPuzzleController,
+	interaction_controller: InteractionController
 ) -> void:
 	_player = player
 	_threshold_system = threshold_system
 	_world_state = world_state
 	_director = director
 	_state_preview = state_preview
+	_operator_system = operator_system
+	_objective_manager = objective_manager
+	_anchor_puzzle = anchor_puzzle
+	_interaction_controller = interaction_controller
 
 
 func set_debug_visible(next_visible: bool) -> void:
@@ -40,6 +53,10 @@ func _process(_delta: float) -> void:
 		and is_instance_valid(_world_state)
 		and is_instance_valid(_director)
 		and is_instance_valid(_state_preview)
+		and is_instance_valid(_operator_system)
+		and is_instance_valid(_objective_manager)
+		and is_instance_valid(_anchor_puzzle)
+		and is_instance_valid(_interaction_controller)
 	):
 		return
 
@@ -59,14 +76,27 @@ func _process(_delta: float) -> void:
 		+ "outer radius / scale    %5.2f / %5.2f\n" % [_director.outer_radius_ratio, _director.outer_scale_ratio]
 		+ "transition              %s  %5.2f\n" % [str(_director.transition_active), _director.transition_progress]
 		+ "target_preview          %s\n\n" % _state_preview.preview_label()
-		+ "WASD move • Mouse look • Esc release • F3 debug • F4 preview"
+		+ "anchor_acquired         %s\n" % str(_operator_system.anchor_acquired)
+		+ "anchor_active           %s\n" % str(_operator_system.is_anchor_active())
+		+ "anchored_target         %s\n" % _operator_system.anchored_target_label()
+		+ "anchored_state          %d\n" % _operator_system.anchored_state
+		+ "objective_state         %s\n" % _objective_manager.objective_label()
+		+ "fragment_collected      %s\n" % str(_objective_manager.fragment_collected)
+		+ "fragment_ready          %s  error %5.3f\n" % [str(_anchor_puzzle.fragment_collectible), _anchor_puzzle.alignment_error]
+		+ "exit_active             %s\n" % str(_objective_manager.exit_active)
+		+ "aimed_interaction       %s\n\n" % _interaction_controller.aimed_interaction
+		+ "WASD move • Mouse look • E interact • R restart\nEsc release • F3 debug • F4 preview"
+	)
+	_crosshair.add_theme_color_override(
+		"font_color",
+		Color(1.0, 0.78, 0.3) if _interaction_controller.aimed_interaction != "NONE" else Color(0.9, 0.96, 1.0, 0.78)
 	)
 
 
 func _create_interface() -> void:
 	_panel = PanelContainer.new()
 	_panel.position = Vector2(14.0, 14.0)
-	_panel.custom_minimum_size = Vector2(430.0, 0.0)
+	_panel.custom_minimum_size = Vector2(455.0, 0.0)
 	add_child(_panel)
 
 	var panel_style := StyleBoxFlat.new()
@@ -88,13 +118,13 @@ func _create_interface() -> void:
 	_readout.add_theme_font_size_override("font_size", 14)
 	margin.add_child(_readout)
 
-	var crosshair := Label.new()
-	crosshair.text = "+"
-	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	crosshair.set_anchors_preset(Control.PRESET_CENTER)
-	crosshair.position = Vector2(-10.0, -14.0)
-	crosshair.size = Vector2(20.0, 28.0)
-	crosshair.add_theme_color_override("font_color", Color(0.9, 0.96, 1.0, 0.78))
-	crosshair.add_theme_font_size_override("font_size", 18)
-	add_child(crosshair)
+	_crosshair = Label.new()
+	_crosshair.text = "+"
+	_crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
+	_crosshair.position = Vector2(-10.0, -14.0)
+	_crosshair.size = Vector2(20.0, 28.0)
+	_crosshair.add_theme_color_override("font_color", Color(0.9, 0.96, 1.0, 0.78))
+	_crosshair.add_theme_font_size_override("font_size", 18)
+	add_child(_crosshair)

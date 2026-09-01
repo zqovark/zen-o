@@ -30,6 +30,10 @@ func get_transformable_nodes() -> Array[Node3D]:
 	return _transformable_nodes.duplicate()
 
 
+func register_transformable(node: Node3D, layer: String) -> void:
+	_register_transformable(node, layer)
+
+
 func _create_materials() -> void:
 	_floor_material = _make_material(Color(0.045, 0.052, 0.07), 0.94)
 	_guide_material = _make_material(Color(0.105, 0.13, 0.16), 0.86)
@@ -238,6 +242,8 @@ func _add_mesh(parent: Node3D, mesh: Mesh, local_position: Vector3) -> void:
 
 
 func _register_transformable(node: Node3D, layer: String) -> void:
+	if node is AnimatableBody3D:
+		node.sync_to_physics = false
 	node.set_meta("base_position", node.position)
 	node.set_meta("base_scale", node.scale)
 	node.set_meta("zeno_layer", layer)

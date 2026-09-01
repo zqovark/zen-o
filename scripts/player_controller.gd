@@ -9,8 +9,10 @@ extends CharacterBody3D
 @export var gravity: float = 24.0
 
 @onready var head: Node3D = $Head
+@onready var camera: Camera3D = $Head/Camera3D
 
 var _mouse_captured: bool = true
+var input_enabled: bool = true
 
 
 func _ready() -> void:
@@ -18,7 +20,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and _mouse_captured:
+	if event is InputEventMouseMotion and _mouse_captured and input_enabled:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotation.x = clampf(
 			head.rotation.x - event.relative.y * mouse_sensitivity,
@@ -33,9 +35,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var input_vector := Input.get_vector(
-		"move_left", "move_right", "move_forward", "move_backward"
-	)
+	var input_vector := Vector2.ZERO
+	if input_enabled:
+		input_vector = Input.get_vector(
+			"move_left", "move_right", "move_forward", "move_backward"
+		)
 	var desired_direction := Vector3.ZERO
 	if input_vector.length_squared() > 0.0:
 		desired_direction = (
@@ -56,6 +60,12 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 
 	move_and_slide()
+
+
+func set_input_enabled(next_enabled: bool) -> void:
+	input_enabled = next_enabled
+	if not input_enabled:
+		velocity = Vector3.ZERO
 
 
 func _capture_mouse(captured: bool) -> void:
