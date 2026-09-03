@@ -5,7 +5,7 @@ var preview_state: int = -1
 
 var _arena: TestArena
 var _director: TransformationDirector
-var _debug_visible: bool = true
+var _debug_visible: bool = false
 
 
 func configure(test_arena: TestArena, transformation_director: TransformationDirector) -> void:
@@ -50,7 +50,7 @@ func _rebuild() -> void:
 		add_child(ghost_root)
 
 		for source_child in source.get_children():
-			if source_child is MeshInstance3D:
+			if source_child is MeshInstance3D and source_child.visible:
 				var source_mesh := source_child as MeshInstance3D
 				var ghost_mesh := MeshInstance3D.new()
 				ghost_mesh.mesh = source_mesh.mesh

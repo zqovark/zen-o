@@ -66,6 +66,10 @@ func interaction_label() -> String:
 	return "ACQUIRE ANCHOR" if available else "DORMANT"
 
 
+func can_interact() -> bool:
+	return available
+
+
 func _refresh_presentation() -> void:
 	if is_instance_valid(_visual):
 		_visual.material_override = _available_material if available else _dormant_material

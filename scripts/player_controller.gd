@@ -1,7 +1,7 @@
 class_name PlayerController
 extends CharacterBody3D
 
-@export_range(1.0, 15.0, 0.1) var movement_speed: float = 7.0
+@export_range(1.0, 15.0, 0.1) var movement_speed: float = 5.2
 @export_range(1.0, 50.0, 0.5) var acceleration: float = 22.0
 @export_range(1.0, 50.0, 0.5) var deceleration: float = 28.0
 @export_range(0.0005, 0.01, 0.0001) var mouse_sensitivity: float = 0.0025

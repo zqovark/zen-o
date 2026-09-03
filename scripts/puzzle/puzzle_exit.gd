@@ -5,6 +5,7 @@ var active: bool = false
 
 var _controller: AnchorPuzzleController
 var _visuals: Array[MeshInstance3D] = []
+var _collision: CollisionShape3D
 var _activation_root: Node3D
 var _activation_light: OmniLight3D
 var _dormant_material: Material
@@ -34,6 +35,11 @@ func register_visual(visual: MeshInstance3D) -> void:
 	_refresh_presentation()
 
 
+func register_collision(collision: CollisionShape3D) -> void:
+	_collision = collision
+	_refresh_presentation()
+
+
 func set_active(next_active: bool = true) -> void:
 	var just_activated := next_active and not active
 	active = next_active
@@ -52,6 +58,10 @@ func interaction_label() -> String:
 	return "COMPLETE RUN" if active else "EXIT INACTIVE"
 
 
+func can_interact() -> bool:
+	return active
+
+
 func _refresh_presentation() -> void:
 	var material := _active_material if active else _dormant_material
 	for visual in _visuals:
@@ -61,6 +71,8 @@ func _refresh_presentation() -> void:
 		_activation_root.visible = active
 	if is_instance_valid(_activation_light):
 		_activation_light.light_energy = 1.15 if active else 0.0
+	if is_instance_valid(_collision):
+		_collision.set_deferred("disabled", not active)
 
 
 func _play_activation_feedback() -> void:

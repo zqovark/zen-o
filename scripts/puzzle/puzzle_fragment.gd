@@ -63,6 +63,10 @@ func interaction_label() -> String:
 	return "COLLECT FRAGMENT" if collectible else "UNSTABLE FRAGMENT"
 
 
+func can_interact() -> bool:
+	return collectible and not collected
+
+
 func _refresh_presentation() -> void:
 	if is_instance_valid(_visual):
 		_visual.material_override = _collectible_material if collectible else _dormant_material

@@ -4,6 +4,7 @@ extends Node
 signal objective_changed(previous: ObjectiveState, current: ObjectiveState)
 signal anchor_pickup_revealed
 signal fragment_collected_signal
+signal route_opened_signal
 signal exit_activated_signal
 signal run_completed
 
@@ -12,13 +13,16 @@ enum ObjectiveState {
 	DISCOVER_ANCHOR,
 	ANCHOR_TARGET,
 	REACH_FRAGMENT,
-	EXIT_UNLOCKED,
+	ANCHOR_ROUTE,
+	TRAVERSE_ROUTE,
 	REACH_EXIT,
 	RUN_COMPLETE,
 }
 
 var current_objective: ObjectiveState = ObjectiveState.LEARN_LAW
 var fragment_collected: bool = false
+var route_opened: bool = false
+var route_traversed: bool = false
 var exit_active: bool = false
 
 
@@ -35,6 +39,8 @@ func on_anchor_acquired() -> void:
 
 func on_anchor_applied(_target: AnchorableSpatialTarget, state: int) -> void:
 	if fragment_collected:
+		if not route_opened:
+			_set_objective(ObjectiveState.ANCHOR_ROUTE)
 		return
 	if state == 1:
 		_set_objective(ObjectiveState.REACH_FRAGMENT)
@@ -48,8 +54,24 @@ func try_collect_fragment(alignment_valid: bool) -> bool:
 	if current_objective != ObjectiveState.REACH_FRAGMENT:
 		return false
 	fragment_collected = true
-	_set_objective(ObjectiveState.EXIT_UNLOCKED)
+	_set_objective(ObjectiveState.ANCHOR_ROUTE)
 	fragment_collected_signal.emit()
+	return true
+
+
+func on_route_opened() -> bool:
+	if not fragment_collected or route_opened:
+		return false
+	route_opened = true
+	_set_objective(ObjectiveState.TRAVERSE_ROUTE)
+	route_opened_signal.emit()
+	return true
+
+
+func on_route_traversed() -> bool:
+	if not route_opened or route_traversed:
+		return false
+	route_traversed = true
 	exit_active = true
 	exit_activated_signal.emit()
 	_set_objective(ObjectiveState.REACH_EXIT)
@@ -71,6 +93,8 @@ func objective_label() -> String:
 func reset() -> void:
 	current_objective = ObjectiveState.LEARN_LAW
 	fragment_collected = false
+	route_opened = false
+	route_traversed = false
 	exit_active = false
 
 

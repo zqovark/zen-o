@@ -72,7 +72,12 @@ func _test_objective_flow() -> void:
 	_expect(not objective.try_collect_fragment(false), "Fragment ignored invalid alignment")
 	_expect(objective.try_collect_fragment(true), "Valid Fragment collection failed")
 	_expect(not objective.try_collect_fragment(true), "Fragment collected twice")
-	_expect(objective.fragment_collected and objective.exit_active, "Fragment did not activate Exit")
+	_expect(objective.fragment_collected, "Fragment collection was not recorded")
+	_expect(not objective.exit_active, "Fragment bypassed the reusable ANCHOR route")
+	_expect(objective.on_route_opened(), "A valid preserved boundary relation did not open the route")
+	_expect(not objective.on_route_opened(), "The route opened twice")
+	_expect(objective.on_route_traversed(), "Traversing the opened route did not activate the Exit")
+	_expect(not objective.on_route_traversed(), "The route was traversed twice")
 	_expect(objective.try_complete_run(), "Active Exit did not complete the run")
 	_expect(not objective.try_complete_run(), "Run completed twice")
 	objective.reset()
@@ -80,7 +85,13 @@ func _test_objective_flow() -> void:
 		objective.current_objective == ObjectiveManager.ObjectiveState.LEARN_LAW,
 		"Objective reset did not restore initial state"
 	)
-	_expect(not objective.fragment_collected and not objective.exit_active, "Objective reset retained completion flags")
+	_expect(
+		not objective.fragment_collected
+		and not objective.route_opened
+		and not objective.route_traversed
+		and not objective.exit_active,
+		"Objective reset retained completion flags"
+	)
 	objective.free()
 
 
@@ -199,7 +210,10 @@ func _test_complete_spatial_solution() -> void:
 
 	_expect(puzzle.try_collect_fragment(), "Aligned Fragment could not be collected")
 	_expect(not puzzle.try_collect_fragment(), "Fragment could be collected twice")
-	_expect(objective.exit_active and puzzle.puzzle_exit.active, "Fragment did not unlock the Exit")
+	_expect(not objective.exit_active and not puzzle.puzzle_exit.active, "Fragment bypassed the route puzzle")
+	_expect(objective.on_route_opened(), "Route opening was rejected after Fragment collection")
+	_expect(objective.on_route_traversed(), "Route traversal did not unlock the Exit")
+	_expect(objective.exit_active and puzzle.puzzle_exit.active, "Route traversal did not unlock the Exit")
 	_expect(
 		puzzle.puzzle_exit.get_node("ExitActivationBeacon").visible,
 		"Active Exit lacked a spatially visible beacon"

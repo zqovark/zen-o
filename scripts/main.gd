@@ -9,6 +9,8 @@ extends Node3D
 @onready var objective_manager: ObjectiveManager = %ObjectiveManager
 @onready var interaction_controller: InteractionController = %InteractionController
 @onready var anchor_puzzle: AnchorPuzzleController = %AnchorPuzzle
+@onready var anchor_route: AnchorRouteController = %AnchorRoute
+@onready var spatial_feedback: SpatialFeedbackController = %SpatialFeedback
 @onready var threshold_visualizer: ThresholdVisualizer = %ThresholdVisualizer
 @onready var spatial_state_preview: SpatialStatePreview = %SpatialStatePreview
 @onready var debug_overlay: DebugOverlay = %DebugOverlay
@@ -30,6 +32,15 @@ func _ready() -> void:
 		player,
 		interaction_controller
 	)
+	anchor_route.configure(
+		test_arena,
+		transformation_director,
+		world_state_controller,
+		operator_system,
+		objective_manager,
+		player,
+		anchor_puzzle.puzzle_exit
+	)
 	transformation_director.configure(test_arena)
 	world_state_controller.world_state_changed.connect(
 		transformation_director.transition_to_state
@@ -39,6 +50,12 @@ func _ready() -> void:
 	)
 	transformation_director.apply_state_immediately(world_state_controller.current_state)
 	interaction_controller.configure(player.camera, player)
+	spatial_feedback.configure(
+		player.camera,
+		world_state_controller,
+		threshold_system.thresholds,
+		threshold_system.conceptual_edge_radius
+	)
 
 	threshold_visualizer.configure(
 		threshold_system.thresholds,
@@ -54,6 +71,7 @@ func _ready() -> void:
 		operator_system,
 		objective_manager,
 		anchor_puzzle,
+		anchor_route,
 		interaction_controller
 	)
 	threshold_visualizer.set_debug_visible(_debug_visible)

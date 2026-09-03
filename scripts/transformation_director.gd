@@ -11,32 +11,32 @@ const STATE_PROFILES := [
 		"outer_scale": 1.00,
 	},
 	{
-		"near_radius": 0.96,
-		"near_scale": 1.16,
-		"mid_radius": 1.05,
-		"mid_scale": 0.92,
+		"near_radius": 0.92,
+		"near_scale": 1.25,
+		"mid_radius": 1.07,
+		"mid_scale": 0.86,
 		"outer_radius": 1.12,
 		"outer_scale": 1.05,
 	},
 	{
-		"near_radius": 0.90,
-		"near_scale": 1.34,
-		"mid_radius": 1.11,
-		"mid_scale": 0.82,
+		"near_radius": 0.82,
+		"near_scale": 1.52,
+		"mid_radius": 1.16,
+		"mid_scale": 0.70,
 		"outer_radius": 1.20,
 		"outer_scale": 1.10,
 	},
 	{
-		"near_radius": 0.84,
-		"near_scale": 1.54,
-		"mid_radius": 1.18,
-		"mid_scale": 0.72,
+		"near_radius": 0.70,
+		"near_scale": 1.88,
+		"mid_radius": 1.28,
+		"mid_scale": 0.54,
 		"outer_radius": 1.28,
 		"outer_scale": 1.16,
 	},
 ]
 
-@export_range(0.05, 3.0, 0.05) var transition_duration: float = 0.65
+@export_range(0.05, 3.0, 0.01) var transition_duration: float = 0.56
 
 var transition_active: bool = false
 var transition_progress: float = 1.0
@@ -117,7 +117,13 @@ func _physics_process(delta: float) -> void:
 	_elapsed += delta
 	var linear_weight := clampf(_elapsed / transition_duration, 0.0, 1.0)
 	transition_progress = linear_weight
-	var eased_weight := smoothstep(0.0, 1.0, linear_weight)
+	# Quintic easing removes the visible acceleration corners of cubic smoothstep.
+	var eased_weight := (
+		linear_weight
+		* linear_weight
+		* linear_weight
+		* (linear_weight * (linear_weight * 6.0 - 15.0) + 10.0)
+	)
 	for index in _nodes.size():
 		_nodes[index].position = _start_positions[index].lerp(
 			_target_positions[index], eased_weight

@@ -22,8 +22,8 @@ ZENO is inspired by Zeno's paradoxes of motion. The player tries to reach the ap
 
 ## Current milestone
 
-The repository contains the first complete playable puzzle loop. It tests one
-rule and one exception:
+The repository contains a two-part playable ANCHOR loop. It tests one rule and
+the reuse of one exception:
 
 > Crossing an invisible radial threshold changes the relative meaning of distance.
 
@@ -31,9 +31,11 @@ Walk away from the gold center marker. At 50%, 75%, and 87.5% conceptual
 progress, nearby references move inward and grow while mid and outer geometry
 recede at different rates. Turn around to restore the states in reverse.
 
-After all four states have been observed, ANCHOR can preserve one gate's state relation
-while the rest of the arena changes. Use that contradiction to expose the
-Fragment and activate the Exit.
+After all four states have been observed, ANCHOR can preserve one gate's state
+relation while the rest of the arena changes. The first contradiction exposes
+the Fragment. The Fragment then makes three outer-boundary shutters eligible,
+requiring ANCHOR to be reassigned at a useful state to create a physical route
+through the receding wall.
 
 ## Run
 
@@ -49,11 +51,13 @@ Headless threshold validation:
 ```bash
 godot --headless --path . --script res://tests/test_threshold_system.gd
 godot --headless --path . --script res://tests/test_anchor_puzzle.gd
+godot --headless --path . --script res://tests/test_anchor_route.gd
+godot --headless --path . --script res://tests/test_spatial_feedback.gd
 godot --headless --path . --script res://tests/test_restart.gd
 ```
 
 See `docs/TECHNICAL_SPIKE.md` for the state profiles and architecture. Use
-`docs/ANCHOR_PLAYTEST.md` for a blind five-minute comprehension test.
+`docs/ANCHOR_PLAYTEST.md` for a blind 5–10 minute comprehension test.
 
 ## North star
 

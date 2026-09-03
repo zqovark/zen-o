@@ -45,15 +45,36 @@ func register_visual(mesh_instance: MeshInstance3D) -> void:
 
 
 func interact(_actor: Node) -> bool:
-	if not is_instance_valid(_operator_system) or not is_instance_valid(_world_state):
+	if (
+		not anchor_eligible
+		or not is_instance_valid(_operator_system)
+		or not is_instance_valid(_world_state)
+	):
 		return false
 	return _operator_system.apply_anchor(self, _world_state.current_state)
 
 
 func interaction_label() -> String:
-	if not is_instance_valid(_operator_system) or not _operator_system.anchor_acquired:
+	if (
+		not anchor_eligible
+		or not is_instance_valid(_operator_system)
+		or not _operator_system.anchor_acquired
+	):
 		return "ANCHOR UNAVAILABLE"
 	return "RE-ANCHOR" if is_anchored else "ANCHOR"
+
+
+func can_interact() -> bool:
+	return (
+		anchor_eligible
+		and is_instance_valid(_operator_system)
+		and _operator_system.anchor_acquired
+	)
+
+
+func set_anchor_eligible(next_eligible: bool) -> void:
+	anchor_eligible = next_eligible
+	_refresh_presentation()
 
 
 func apply_anchor(state: int) -> void:
@@ -77,14 +98,19 @@ func _refresh_presentation() -> void:
 	var material := _normal_material
 	if is_anchored:
 		material = _anchored_material
-	elif is_instance_valid(_operator_system) and _operator_system.anchor_acquired:
+	elif (
+		anchor_eligible
+		and is_instance_valid(_operator_system)
+		and _operator_system.anchor_acquired
+	):
 		material = _eligible_material
 	for visual in _visuals:
 		if is_instance_valid(visual):
 			visual.material_override = material
 	if is_instance_valid(_eligible_indicator):
 		_eligible_indicator.visible = (
-			not is_anchored
+			anchor_eligible
+			and not is_anchored
 			and is_instance_valid(_operator_system)
 			and _operator_system.anchor_acquired
 		)

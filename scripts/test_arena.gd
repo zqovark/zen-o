@@ -34,16 +34,35 @@ func register_transformable(node: Node3D, layer: String) -> void:
 	_register_transformable(node, layer)
 
 
+func get_boundary_segment(index: int) -> AnimatableBody3D:
+	return get_node_or_null("OuterWall%02d" % posmod(index, boundary_segments)) as AnimatableBody3D
+
+
+func get_boundary_segment_width() -> float:
+	return TAU * base_boundary_radius / float(boundary_segments) * 1.08
+
+
+func set_boundary_segment_enabled(index: int, enabled: bool) -> void:
+	var segment := get_boundary_segment(index)
+	if not is_instance_valid(segment):
+		return
+	for child in segment.get_children():
+		if child is MeshInstance3D:
+			child.visible = enabled
+		elif child is CollisionShape3D:
+			child.disabled = not enabled
+
+
 func _create_materials() -> void:
 	_floor_material = _make_material(Color(0.045, 0.052, 0.07), 0.94)
-	_guide_material = _make_material(Color(0.105, 0.13, 0.16), 0.86)
-	_center_material = _make_material(Color(0.96, 0.72, 0.2), 0.46)
-	_near_material = _make_material(Color(0.16, 0.68, 0.7), 0.42)
-	_near_accent_material = _make_material(Color(0.48, 0.96, 0.89), 0.32)
-	_mid_material = _make_material(Color(0.34, 0.38, 0.68), 0.58)
-	_mid_accent_material = _make_material(Color(0.68, 0.7, 0.95), 0.4)
-	_outer_material = _make_material(Color(0.57, 0.59, 0.7), 0.75)
-	_outer_accent_material = _make_material(Color(0.86, 0.68, 0.42), 0.54)
+	_guide_material = _make_material(Color(0.13, 0.17, 0.21), 0.86, 0.12)
+	_center_material = _make_material(Color(0.96, 0.72, 0.2), 0.46, 0.42)
+	_near_material = _make_material(Color(0.16, 0.68, 0.7), 0.42, 0.08)
+	_near_accent_material = _make_material(Color(0.48, 0.96, 0.89), 0.32, 0.72)
+	_mid_material = _make_material(Color(0.34, 0.38, 0.68), 0.58, 0.06)
+	_mid_accent_material = _make_material(Color(0.68, 0.7, 0.95), 0.4, 0.58)
+	_outer_material = _make_material(Color(0.57, 0.59, 0.7), 0.75, 0.04)
+	_outer_accent_material = _make_material(Color(0.86, 0.68, 0.42), 0.54, 0.66)
 
 
 func _create_floor() -> void:
@@ -168,7 +187,7 @@ func _create_mid_colonnades() -> void:
 
 
 func _create_outer_boundary() -> void:
-	var segment_width := TAU * base_boundary_radius / float(boundary_segments) * 1.08
+	var segment_width := get_boundary_segment_width()
 	for index in boundary_segments:
 		var angle := TAU * float(index) / float(boundary_segments)
 		var body := AnimatableBody3D.new()
@@ -250,8 +269,16 @@ func _register_transformable(node: Node3D, layer: String) -> void:
 	_transformable_nodes.append(node)
 
 
-func _make_material(color: Color, roughness: float) -> StandardMaterial3D:
+func _make_material(
+	color: Color,
+	roughness: float,
+	emission_energy: float = 0.0
+) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = roughness
+	if emission_energy > 0.0:
+		material.emission_enabled = true
+		material.emission = color
+		material.emission_energy_multiplier = emission_energy
 	return material

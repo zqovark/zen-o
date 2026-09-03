@@ -3,7 +3,7 @@ extends Node3D
 
 const PUZZLE_ANGLE := deg_to_rad(22.5)
 const GATE_BASE_RADIUS := 17.0
-const RECEIVER_BASE_RADIUS := 14.875
+const RECEIVER_BASE_RADIUS := 15.158333
 const ALIGNMENT_TOLERANCE := 0.12
 const RESISTANCE_FEEDBACK_DURATION := 2.2
 
@@ -102,7 +102,10 @@ func _on_world_state_changed(_previous: int, current: int) -> void:
 	if _operator_system.is_anchor_active():
 		if current != _operator_system.anchored_state:
 			_audio.play_cue("anchor_resist")
-			_show_resistance_feedback(current)
+			if _operator_system.active_anchor == anchor_target:
+				_show_resistance_feedback(current)
+			else:
+				_hide_resistance_feedback()
 		else:
 			_hide_resistance_feedback()
 
@@ -316,7 +319,7 @@ func _build_receiver(
 func _build_anchor_pickup(dormant: Material, available: Material) -> void:
 	anchor_pickup = AnchorPickup.new()
 	anchor_pickup.name = "AnchorAcquisition"
-	anchor_pickup.position = Vector3(0.0, 1.15, -6.5)
+	anchor_pickup.position = _radial_position(-6.5) + Vector3(0.0, 1.15, 0.0)
 	add_child(anchor_pickup)
 	var pickup_mesh := SphereMesh.new()
 	pickup_mesh.radius = 0.62
@@ -352,6 +355,13 @@ func _build_anchor_pickup(dormant: Material, available: Material) -> void:
 		reveal_torus.material = available
 		var reveal_ring := _add_mesh(reveal_indicator, reveal_torus, Vector3.ZERO)
 		reveal_ring.rotation = ring_rotation
+	var reveal_beam := CylinderMesh.new()
+	reveal_beam.top_radius = 0.045
+	reveal_beam.bottom_radius = 0.045
+	reveal_beam.height = 5.2
+	reveal_beam.radial_segments = 10
+	reveal_beam.material = available
+	_add_mesh(reveal_indicator, reveal_beam, Vector3(0.0, 2.1, 0.0))
 	var reveal_light := OmniLight3D.new()
 	reveal_light.name = "AnchorRevealLight"
 	reveal_light.light_color = Color(1.0, 0.72, 0.24)
@@ -379,10 +389,11 @@ func _build_exit(dormant: Material, active: Material) -> void:
 	puzzle_exit.register_visual(exit_visual)
 	var exit_collision := CollisionShape3D.new()
 	var exit_shape := SphereShape3D.new()
-	exit_shape.radius = 1.15
+	exit_shape.radius = 0.75
 	exit_collision.shape = exit_shape
 	puzzle_exit.add_child(exit_collision)
 	puzzle_exit.configure(self, dormant, active)
+	puzzle_exit.register_collision(exit_collision)
 	var activation_root := Node3D.new()
 	activation_root.name = "ExitActivationBeacon"
 	activation_root.rotation.z = -puzzle_exit.rotation.z

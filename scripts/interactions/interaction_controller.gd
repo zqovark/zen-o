@@ -38,8 +38,15 @@ func _update_aimed_interactable() -> void:
 	query.collide_with_bodies = true
 	var hit := _camera.get_world_3d().direct_space_state.intersect_ray(query)
 	var collider: Node = hit.get("collider")
-	if is_instance_valid(collider) and collider.has_method("interact"):
+	var interaction_available := (
+		is_instance_valid(collider)
+		and collider.has_method("interact")
+		and (
+			not collider.has_method("can_interact")
+			or bool(collider.call("can_interact"))
+		)
+	)
+	if interaction_available:
 		aimed_interactable = collider
 		if collider.has_method("interaction_label"):
 			aimed_interaction = collider.call("interaction_label")
-

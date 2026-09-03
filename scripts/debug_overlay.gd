@@ -10,6 +10,7 @@ var _state_preview: SpatialStatePreview
 var _operator_system: OperatorSystem
 var _objective_manager: ObjectiveManager
 var _anchor_puzzle: AnchorPuzzleController
+var _anchor_route: AnchorRouteController
 var _interaction_controller: InteractionController
 var _panel: PanelContainer
 var _readout: Label
@@ -30,6 +31,7 @@ func configure(
 	operator_system: OperatorSystem,
 	objective_manager: ObjectiveManager,
 	anchor_puzzle: AnchorPuzzleController,
+	anchor_route: AnchorRouteController,
 	interaction_controller: InteractionController
 ) -> void:
 	_player = player
@@ -40,6 +42,7 @@ func configure(
 	_operator_system = operator_system
 	_objective_manager = objective_manager
 	_anchor_puzzle = anchor_puzzle
+	_anchor_route = anchor_route
 	_interaction_controller = interaction_controller
 
 
@@ -59,6 +62,7 @@ func _process(_delta: float) -> void:
 		and is_instance_valid(_operator_system)
 		and is_instance_valid(_objective_manager)
 		and is_instance_valid(_anchor_puzzle)
+		and is_instance_valid(_anchor_route)
 		and is_instance_valid(_interaction_controller)
 	):
 		return
@@ -86,6 +90,9 @@ func _process(_delta: float) -> void:
 		+ "objective_state         %s\n" % _objective_manager.objective_label()
 		+ "fragment_collected      %s\n" % str(_objective_manager.fragment_collected)
 		+ "fragment_ready          %s  error %5.3f\n" % [str(_anchor_puzzle.fragment_collectible), _anchor_puzzle.alignment_error]
+		+ "route_unlocked          %s\n" % str(_anchor_route.route_unlocked)
+		+ "route_open              %s  clearance %5.3f\n" % [str(_anchor_route.route_open), _anchor_route.radial_clearance]
+		+ "route_crossed           %s\n" % str(_anchor_route.route_crossed)
 		+ "exit_active             %s\n" % str(_objective_manager.exit_active)
 		+ "aimed_interaction       %s\n\n" % _interaction_controller.aimed_interaction
 		+ "WASD move • Mouse look • E interact • R restart\nEsc release • F3 debug • F4 preview"

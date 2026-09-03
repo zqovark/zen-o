@@ -15,6 +15,7 @@ func _run_test() -> void:
 	var objective: ObjectiveManager = first_scene.get_node("Systems/ObjectiveManager")
 	var world_state: WorldStateController = first_scene.get_node("Systems/WorldStateController")
 	var puzzle: AnchorPuzzleController = first_scene.get_node("AnchorPuzzle")
+	var route: AnchorRouteController = first_scene.get_node("AnchorRoute")
 	var player: PlayerController = first_scene.get_node("Player")
 
 	operator.anchor_acquired = true
@@ -24,7 +25,12 @@ func _run_test() -> void:
 	world_state.current_state = 2
 	objective.current_objective = ObjectiveManager.ObjectiveState.REACH_EXIT
 	objective.fragment_collected = true
+	objective.route_opened = true
+	objective.route_traversed = true
 	objective.exit_active = true
+	route.route_unlocked = true
+	route.route_open = true
+	route.route_crossed = true
 	puzzle.fragment.collected = true
 	puzzle.puzzle_exit.active = true
 	player.global_position = Vector3(9.0, 1.0, 9.0)
@@ -37,6 +43,7 @@ func _run_test() -> void:
 	var reset_world: WorldStateController = reset_scene.get_node("Systems/WorldStateController")
 	var reset_threshold: ZenoThresholdSystem = reset_scene.get_node("Systems/ZenoThresholdSystem")
 	var reset_puzzle: AnchorPuzzleController = reset_scene.get_node("AnchorPuzzle")
+	var reset_route: AnchorRouteController = reset_scene.get_node("AnchorRoute")
 	var reset_player: PlayerController = reset_scene.get_node("Player")
 	var reset_debug: DebugOverlay = reset_scene.get_node("DebugOverlay")
 	var reset_visualizer: ThresholdVisualizer = reset_scene.get_node("ThresholdVisualizer")
@@ -50,10 +57,17 @@ func _run_test() -> void:
 		"Scene restart retained objective state"
 	)
 	_expect(not reset_objective.fragment_collected, "Scene restart retained Fragment collection")
+	_expect(not reset_objective.route_opened and not reset_objective.route_traversed, "Scene restart retained route progress")
 	_expect(not reset_objective.exit_active and not reset_puzzle.puzzle_exit.active, "Scene restart retained active Exit")
+	_expect(not reset_route.route_unlocked and not reset_route.route_open, "Scene restart retained route state")
+	for shutter in reset_route.shutters:
+		_expect(not shutter.anchor_eligible, "Scene restart retained boundary shutter eligibility")
 	_expect(not reset_puzzle.anchor_target.is_anchored, "Scene restart retained anchored target state")
 	_expect(reset_puzzle.fragment.visible and not reset_puzzle.fragment.collected, "Scene restart did not restore Fragment")
-	_expect(reset_player.global_position.is_equal_approx(Vector3(0.0, 1.0, 2.0)), "Scene restart did not restore player position")
+	_expect(
+		reset_player.global_position.is_equal_approx(Vector3(0.765367, 1.0, 1.84776)),
+		"Scene restart did not restore player position"
+	)
 	_expect(not reset_debug.debug_visible, "Restart exposed solution-spoiling diagnostics by default")
 	_expect(not reset_visualizer.debug_visible, "Restart exposed threshold rings by default")
 	reset_scene.queue_free()
