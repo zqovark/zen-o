@@ -10,6 +10,9 @@ func play_cue(cue: String) -> void:
 	var frequency := 440.0
 	var duration := 0.14
 	match cue:
+		"anchor_revealed":
+			frequency = 410.0
+			duration = 0.28
 		"anchor_acquired":
 			frequency = 520.0
 			duration = 0.2

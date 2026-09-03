@@ -1,7 +1,7 @@
 class_name ThresholdVisualizer
 extends Node3D
 
-@export var debug_visible: bool = true
+@export var debug_visible: bool = false
 @export_range(24, 256, 1) var ring_segments: int = 96
 
 var _thresholds: PackedFloat32Array

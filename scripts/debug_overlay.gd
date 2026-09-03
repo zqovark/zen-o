@@ -1,6 +1,7 @@
 class_name DebugOverlay
 extends CanvasLayer
 
+var debug_visible: bool = false
 var _player: PlayerController
 var _threshold_system: ZenoThresholdSystem
 var _world_state: WorldStateController
@@ -13,6 +14,7 @@ var _interaction_controller: InteractionController
 var _panel: PanelContainer
 var _readout: Label
 var _crosshair: Label
+var _controls_hint: Label
 
 
 func _ready() -> void:
@@ -42,6 +44,7 @@ func configure(
 
 
 func set_debug_visible(next_visible: bool) -> void:
+	debug_visible = next_visible
 	if is_instance_valid(_panel):
 		_panel.visible = next_visible
 
@@ -128,3 +131,19 @@ func _create_interface() -> void:
 	_crosshair.add_theme_color_override("font_color", Color(0.9, 0.96, 1.0, 0.78))
 	_crosshair.add_theme_font_size_override("font_size", 18)
 	add_child(_crosshair)
+
+	_controls_hint = Label.new()
+	_controls_hint.text = "WASD  MOVE     MOUSE  LOOK     E  INTERACT     R  RESTART"
+	_controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_controls_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_controls_hint.position = Vector2(-280.0, -58.0)
+	_controls_hint.size = Vector2(560.0, 28.0)
+	_controls_hint.add_theme_color_override("font_color", Color(0.82, 0.92, 0.94, 0.88))
+	_controls_hint.add_theme_color_override("font_outline_color", Color(0.01, 0.018, 0.026, 0.92))
+	_controls_hint.add_theme_constant_override("outline_size", 5)
+	_controls_hint.add_theme_font_size_override("font_size", 14)
+	add_child(_controls_hint)
+
+	var hint_tween := create_tween()
+	hint_tween.tween_interval(7.0)
+	hint_tween.tween_property(_controls_hint, "modulate:a", 0.0, 1.5)

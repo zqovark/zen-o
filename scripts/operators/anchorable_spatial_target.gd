@@ -9,10 +9,12 @@ var anchored_state: int = -1
 var _operator_system: OperatorSystem
 var _world_state: WorldStateController
 var _visuals: Array[MeshInstance3D] = []
+var _eligible_indicator: Node3D
 var _anchor_indicator: Node3D
 var _normal_material: Material
 var _eligible_material: Material
 var _anchored_material: Material
+var _anchor_feedback_tween: Tween
 
 
 func configure(operator_system: OperatorSystem, world_state: WorldStateController) -> void:
@@ -26,11 +28,13 @@ func configure_presentation(
 	normal_material: Material,
 	eligible_material: Material,
 	anchored_material: Material,
+	eligible_indicator: Node3D,
 	indicator: Node3D
 ) -> void:
 	_normal_material = normal_material
 	_eligible_material = eligible_material
 	_anchored_material = anchored_material
+	_eligible_indicator = eligible_indicator
 	_anchor_indicator = indicator
 	_refresh_presentation()
 
@@ -56,6 +60,7 @@ func apply_anchor(state: int) -> void:
 	is_anchored = true
 	anchored_state = state
 	_refresh_presentation()
+	_pulse_anchor_indicator()
 
 
 func release_anchor() -> void:
@@ -77,6 +82,23 @@ func _refresh_presentation() -> void:
 	for visual in _visuals:
 		if is_instance_valid(visual):
 			visual.material_override = material
+	if is_instance_valid(_eligible_indicator):
+		_eligible_indicator.visible = (
+			not is_anchored
+			and is_instance_valid(_operator_system)
+			and _operator_system.anchor_acquired
+		)
 	if is_instance_valid(_anchor_indicator):
 		_anchor_indicator.visible = is_anchored
 
+
+func _pulse_anchor_indicator() -> void:
+	if not is_instance_valid(_anchor_indicator):
+		return
+	if is_instance_valid(_anchor_feedback_tween):
+		_anchor_feedback_tween.kill()
+	_anchor_indicator.scale = Vector3.ONE * 1.28
+	_anchor_feedback_tween = create_tween()
+	_anchor_feedback_tween.set_trans(Tween.TRANS_CUBIC)
+	_anchor_feedback_tween.set_ease(Tween.EASE_OUT)
+	_anchor_feedback_tween.tween_property(_anchor_indicator, "scale", Vector3.ONE, 0.32)

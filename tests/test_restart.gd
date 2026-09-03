@@ -38,6 +38,8 @@ func _run_test() -> void:
 	var reset_threshold: ZenoThresholdSystem = reset_scene.get_node("Systems/ZenoThresholdSystem")
 	var reset_puzzle: AnchorPuzzleController = reset_scene.get_node("AnchorPuzzle")
 	var reset_player: PlayerController = reset_scene.get_node("Player")
+	var reset_debug: DebugOverlay = reset_scene.get_node("DebugOverlay")
+	var reset_visualizer: ThresholdVisualizer = reset_scene.get_node("ThresholdVisualizer")
 
 	_expect(not reset_operator.anchor_acquired, "Scene restart retained ANCHOR acquisition")
 	_expect(not reset_operator.is_anchor_active(), "Scene restart retained active ANCHOR")
@@ -52,6 +54,8 @@ func _run_test() -> void:
 	_expect(not reset_puzzle.anchor_target.is_anchored, "Scene restart retained anchored target state")
 	_expect(reset_puzzle.fragment.visible and not reset_puzzle.fragment.collected, "Scene restart did not restore Fragment")
 	_expect(reset_player.global_position.is_equal_approx(Vector3(0.0, 1.0, 2.0)), "Scene restart did not restore player position")
+	_expect(not reset_debug.debug_visible, "Restart exposed solution-spoiling diagnostics by default")
+	_expect(not reset_visualizer.debug_visible, "Restart exposed threshold rings by default")
 	reset_scene.queue_free()
 	await process_frame
 

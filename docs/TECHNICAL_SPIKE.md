@@ -93,10 +93,23 @@ LEARN_LAW
 → RUN_COMPLETE
 ```
 
-Reaching State 2 once activates the previously dormant ANCHOR object behind the
-center, ensuring the invariant is observed before its exception is available.
-Fragment collection activates a fixed Exit near the center, making retreat part
-of the completion path. Small generated tones distinguish acquisition,
+Reaching State 3 once activates the previously dormant ANCHOR object behind the
+center. This requires the complete four-state law to be experienced before its
+exception is available and makes the first retreat purposeful. A brief geometric
+and light expansion makes the newly active object perceptible without naming its
+function in UI.
+
+After acquisition, the eligible gate gains one cyan relation ring. Applying
+ANCHOR replaces that with two gold invariant rings. When the world changes away
+from the saved state, a short translucent echo occupies the gate's deterministic
+unanchored destination and a thin trace connects it to the preserved gate. This
+echo is presentation-only: it is not registered with the arena, has no collision,
+and never participates in target resolution.
+
+Successful cross-state alignment gives the Fragment two geometric stability
+rings. Collection activates a tall, fixed Exit beacon near the center, making
+the cause of the Exit change visible from the outer puzzle and retreat part of
+the completion path. Small generated tones distinguish reveal, acquisition,
 application, resistance, collection, activation, and completion.
 
 ## Boundary behavior
@@ -109,7 +122,9 @@ progress) so standing or oscillating at a boundary cannot spam transitions.
 
 The overlay exposes state, threshold, distance, normalized progress, radial
 movement direction, player position, outer radius ratio, and transition activity.
-`F3` toggles both the overlay and threshold rings.
+`F3` toggles both the overlay and threshold rings. Diagnostics are hidden by
+default so a blind run cannot read the objective or alignment solution from UI.
+A controls-only hint fades after 8.5 seconds; the reticle remains available.
 
 `F4` cycles a translucent visual-only target preview through States 0, 1, 2, 3,
 then off. Preview meshes have no collision and never write to runtime transforms.
@@ -128,7 +143,7 @@ Controls: `WASD` move, mouse look, `E` interact, `R` restart, `Esc` release the
 mouse. Leave F3/F4 diagnostics enabled only if you need to diagnose a problem.
 
 1. Establish how the cyan, violet, and outer-wall references respond while
-   moving outward through at least State 2.
+   moving outward through all four states.
 2. Inspect the distinct gate and the nearby receiver/Fragment arrangement.
 3. Look back toward and beyond the gold center; investigate any presentation
    change you notice.
@@ -147,8 +162,9 @@ Answer:
 
 ## Spoiler — intended solution
 
-1. Walk outward until State 2. Observe that the special gate and violet receiver
-   do not align; this also activates the ANCHOR pickup behind the center.
+1. Walk outward until State 3. Observe the full spatial law and that the special
+   gate and violet receiver do not align; this also activates the ANCHOR pickup
+   behind the center.
 2. Retreat through the previous states and acquire the glowing ANCHOR object with
    `E` beyond the gold center.
 3. Return outward to State 1. Aim at either illuminated side of the eligible gate

@@ -13,7 +13,7 @@ extends Node3D
 @onready var spatial_state_preview: SpatialStatePreview = %SpatialStatePreview
 @onready var debug_overlay: DebugOverlay = %DebugOverlay
 
-var _debug_visible: bool = true
+var _debug_visible: bool = false
 
 
 func _ready() -> void:
@@ -56,6 +56,9 @@ func _ready() -> void:
 		anchor_puzzle,
 		interaction_controller
 	)
+	threshold_visualizer.set_debug_visible(_debug_visible)
+	spatial_state_preview.set_debug_visible(_debug_visible)
+	debug_overlay.set_debug_visible(_debug_visible)
 
 
 func _unhandled_input(event: InputEvent) -> void:

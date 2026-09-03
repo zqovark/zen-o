@@ -31,7 +31,7 @@ Walk away from the gold center marker. At 50%, 75%, and 87.5% conceptual
 progress, nearby references move inward and grow while mid and outer geometry
 recede at different rates. Turn around to restore the states in reverse.
 
-After the law has been observed, ANCHOR can preserve one gate's state relation
+After all four states have been observed, ANCHOR can preserve one gate's state relation
 while the rest of the arena changes. Use that contradiction to expose the
 Fragment and activate the Exit.
 
@@ -52,7 +52,8 @@ godot --headless --path . --script res://tests/test_anchor_puzzle.gd
 godot --headless --path . --script res://tests/test_restart.gd
 ```
 
-See `docs/TECHNICAL_SPIKE.md` for the state profiles and architecture.
+See `docs/TECHNICAL_SPIKE.md` for the state profiles and architecture. Use
+`docs/ANCHOR_PLAYTEST.md` for a blind five-minute comprehension test.
 
 ## North star
 

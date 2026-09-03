@@ -5,9 +5,11 @@ const PUZZLE_ANGLE := deg_to_rad(22.5)
 const GATE_BASE_RADIUS := 17.0
 const RECEIVER_BASE_RADIUS := 14.875
 const ALIGNMENT_TOLERANCE := 0.12
+const RESISTANCE_FEEDBACK_DURATION := 2.2
 
 var alignment_error: float = INF
 var fragment_collectible: bool = false
+var resistance_feedback_active: bool = false
 
 var anchor_target: AnchorableSpatialTarget
 var receiver_root: Node3D
@@ -24,6 +26,10 @@ var _player: PlayerController
 var _interaction_controller: InteractionController
 var _audio: PuzzleAudio
 var _completion_label: Label
+var _resistance_ghost: Node3D
+var _resistance_trace: MeshInstance3D
+var _resistance_material: StandardMaterial3D
+var _resistance_feedback_elapsed: float = 0.0
 var _configured: bool = false
 
 
@@ -55,9 +61,10 @@ func configure(
 	_connect_events()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _configured or not is_instance_valid(anchor_target) or not is_instance_valid(receiver_root):
 		return
+	_update_resistance_feedback(delta)
 	var offset := anchor_target.global_position - receiver_root.global_position
 	offset.y = 0.0
 	alignment_error = offset.length()
@@ -85,15 +92,24 @@ func _connect_events() -> void:
 	_world_state.world_state_changed.connect(_objective_manager.on_world_state_changed)
 	_world_state.world_state_changed.connect(_on_world_state_changed)
 	_operator_system.anchor_applied.connect(_on_anchor_applied)
-	_objective_manager.anchor_pickup_revealed.connect(anchor_pickup.set_available)
+	_objective_manager.anchor_pickup_revealed.connect(_on_anchor_pickup_revealed)
 	_objective_manager.fragment_collected_signal.connect(_on_fragment_collected)
 	_objective_manager.exit_activated_signal.connect(_on_exit_activated)
 	_objective_manager.run_completed.connect(_on_run_completed)
 
 
-func _on_world_state_changed(_previous: int, _current: int) -> void:
+func _on_world_state_changed(_previous: int, current: int) -> void:
 	if _operator_system.is_anchor_active():
-		_audio.play_cue("anchor_resist")
+		if current != _operator_system.anchored_state:
+			_audio.play_cue("anchor_resist")
+			_show_resistance_feedback(current)
+		else:
+			_hide_resistance_feedback()
+
+
+func _on_anchor_pickup_revealed() -> void:
+	anchor_pickup.set_available()
+	_audio.play_cue("anchor_revealed")
 
 
 func _on_anchor_applied(target: AnchorableSpatialTarget, state: int) -> void:
@@ -123,6 +139,9 @@ func _build_puzzle_geometry() -> void:
 	var target_eligible := _make_material(Color(0.24, 0.78, 0.72), Color(0.06, 0.42, 0.36), 1.4)
 	var target_anchored := _make_material(Color(0.96, 0.68, 0.2), Color(0.72, 0.34, 0.04), 2.0)
 	var receiver_material := _make_material(Color(0.47, 0.3, 0.7), Color(0.16, 0.06, 0.35), 1.0)
+	var resistance_material := _make_material(Color(0.7, 0.86, 1.0, 0.24), Color(0.2, 0.5, 0.8), 1.5)
+	resistance_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	resistance_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var dormant_material := _make_material(Color(0.12, 0.13, 0.17), Color(0.0, 0.0, 0.0))
 	var anchor_material := _make_material(Color(0.92, 0.76, 0.28), Color(0.7, 0.38, 0.04), 2.2)
 	var fragment_material := _make_material(Color(0.32, 0.12, 0.38), Color(0.08, 0.01, 0.12), 0.6)
@@ -130,6 +149,7 @@ func _build_puzzle_geometry() -> void:
 	var exit_active := _make_material(Color(0.42, 0.96, 0.58), Color(0.08, 0.72, 0.28), 2.2)
 
 	_build_anchor_target(target_normal, target_eligible, target_anchored)
+	_build_resistance_feedback(resistance_material)
 	_build_receiver(receiver_material, fragment_material, fragment_active)
 	_build_anchor_pickup(dormant_material, anchor_material)
 	_build_exit(dormant_material, exit_active)
@@ -164,8 +184,22 @@ func _build_anchor_target(normal: Material, eligible: Material, anchored: Materi
 	)
 	anchor_target.register_visual(lintel)
 
+	var eligible_indicator := Node3D.new()
+	eligible_indicator.name = "EligibleRelationRing"
+	eligible_indicator.position.y = 1.9
+	eligible_indicator.rotation.x = PI * 0.5
+	eligible_indicator.visible = false
+	anchor_target.add_child(eligible_indicator)
+	var eligible_torus := TorusMesh.new()
+	eligible_torus.inner_radius = 1.98
+	eligible_torus.outer_radius = 2.06
+	eligible_torus.rings = 32
+	eligible_torus.ring_segments = 10
+	eligible_torus.material = eligible
+	_add_mesh(eligible_indicator, eligible_torus, Vector3.ZERO)
+
 	var indicator := Node3D.new()
-	indicator.name = "AnchorInvariantRing"
+	indicator.name = "AnchorInvariantRings"
 	indicator.position.y = 1.9
 	indicator.rotation.x = PI * 0.5
 	indicator.visible = false
@@ -177,10 +211,45 @@ func _build_anchor_target(normal: Material, eligible: Material, anchored: Materi
 	torus.ring_segments = 12
 	torus.material = anchored
 	_add_mesh(indicator, torus, Vector3.ZERO)
+	var outer_torus := TorusMesh.new()
+	outer_torus.inner_radius = 2.02
+	outer_torus.outer_radius = 2.1
+	outer_torus.rings = 32
+	outer_torus.ring_segments = 10
+	outer_torus.material = anchored
+	_add_mesh(indicator, outer_torus, Vector3.ZERO)
 
 	anchor_target.configure(_operator_system, _world_state)
-	anchor_target.configure_presentation(normal, eligible, anchored, indicator)
+	anchor_target.configure_presentation(normal, eligible, anchored, eligible_indicator, indicator)
 	_arena.register_transformable(anchor_target, "mid")
+
+
+func _build_resistance_feedback(material: StandardMaterial3D) -> void:
+	_resistance_material = material
+	_resistance_ghost = Node3D.new()
+	_resistance_ghost.name = "UnanchoredRelationEcho"
+	_resistance_ghost.visible = false
+	add_child(_resistance_ghost)
+	for side in [-1.0, 1.0]:
+		_add_box_mesh(
+			_resistance_ghost,
+			Vector3(0.58, 3.8, 0.72),
+			Vector3(side * 1.55, 1.9, 0.0),
+			material
+		)
+	_add_box_mesh(
+		_resistance_ghost,
+		Vector3(3.68, 0.42, 0.72),
+		Vector3(0.0, 3.8, 0.0),
+		material
+	)
+
+	var trace_mesh := BoxMesh.new()
+	trace_mesh.size = Vector3(0.055, 0.055, 1.0)
+	trace_mesh.material = material
+	_resistance_trace = _add_mesh(self, trace_mesh, Vector3.ZERO)
+	_resistance_trace.name = "PreservedRelationTrace"
+	_resistance_trace.visible = false
 
 
 func _build_receiver(
@@ -227,6 +296,20 @@ func _build_receiver(
 	fragment_collision.shape = fragment_shape
 	fragment.add_child(fragment_collision)
 	fragment.configure(self, fragment_visual, fragment_collision, fragment_material, fragment_active)
+	var stability_indicator := Node3D.new()
+	stability_indicator.name = "StabilizedRelationRings"
+	stability_indicator.visible = false
+	fragment.add_child(stability_indicator)
+	for rotation_axis in [Vector3.ZERO, Vector3(PI * 0.5, 0.0, 0.0)]:
+		var stability_torus := TorusMesh.new()
+		stability_torus.inner_radius = 0.64
+		stability_torus.outer_radius = 0.71
+		stability_torus.rings = 24
+		stability_torus.ring_segments = 8
+		stability_torus.material = fragment_active
+		var ring := _add_mesh(stability_indicator, stability_torus, Vector3.ZERO)
+		ring.rotation = rotation_axis
+	fragment.configure_feedback(stability_indicator)
 	_arena.register_transformable(receiver_root, "outer")
 
 
@@ -256,6 +339,27 @@ func _build_anchor_pickup(dormant: Material, available: Material) -> void:
 		dormant,
 		available
 	)
+	var reveal_indicator := Node3D.new()
+	reveal_indicator.name = "AnchorRevealRings"
+	reveal_indicator.visible = false
+	anchor_pickup.add_child(reveal_indicator)
+	for ring_rotation in [Vector3.ZERO, Vector3(PI * 0.5, 0.0, 0.0)]:
+		var reveal_torus := TorusMesh.new()
+		reveal_torus.inner_radius = 0.92
+		reveal_torus.outer_radius = 1.0
+		reveal_torus.rings = 24
+		reveal_torus.ring_segments = 8
+		reveal_torus.material = available
+		var reveal_ring := _add_mesh(reveal_indicator, reveal_torus, Vector3.ZERO)
+		reveal_ring.rotation = ring_rotation
+	var reveal_light := OmniLight3D.new()
+	reveal_light.name = "AnchorRevealLight"
+	reveal_light.light_color = Color(1.0, 0.72, 0.24)
+	reveal_light.omni_range = 7.0
+	reveal_light.shadow_enabled = false
+	reveal_light.light_energy = 0.0
+	anchor_pickup.add_child(reveal_light)
+	anchor_pickup.configure_feedback(reveal_indicator, reveal_light)
 
 
 func _build_exit(dormant: Material, active: Material) -> void:
@@ -279,6 +383,88 @@ func _build_exit(dormant: Material, active: Material) -> void:
 	exit_collision.shape = exit_shape
 	puzzle_exit.add_child(exit_collision)
 	puzzle_exit.configure(self, dormant, active)
+	var activation_root := Node3D.new()
+	activation_root.name = "ExitActivationBeacon"
+	activation_root.rotation.z = -puzzle_exit.rotation.z
+	activation_root.visible = false
+	puzzle_exit.add_child(activation_root)
+	var beacon_mesh := CylinderMesh.new()
+	beacon_mesh.top_radius = 0.07
+	beacon_mesh.bottom_radius = 0.07
+	beacon_mesh.height = 7.0
+	beacon_mesh.radial_segments = 12
+	beacon_mesh.material = active
+	_add_mesh(activation_root, beacon_mesh, Vector3(0.0, 3.1, 0.0))
+	for height in [1.2, 3.2, 5.2]:
+		var beacon_torus := TorusMesh.new()
+		beacon_torus.inner_radius = 0.48
+		beacon_torus.outer_radius = 0.55
+		beacon_torus.rings = 24
+		beacon_torus.ring_segments = 8
+		beacon_torus.material = active
+		_add_mesh(activation_root, beacon_torus, Vector3(0.0, height, 0.0))
+	var activation_light := OmniLight3D.new()
+	activation_light.name = "ExitActivationLight"
+	activation_light.position.y = 1.4
+	activation_light.light_color = Color(0.42, 1.0, 0.58)
+	activation_light.omni_range = 8.0
+	activation_light.shadow_enabled = false
+	activation_light.light_energy = 0.0
+	activation_root.add_child(activation_light)
+	puzzle_exit.configure_feedback(activation_root, activation_light)
+
+
+func _show_resistance_feedback(world_state: int) -> void:
+	if not is_instance_valid(anchor_target) or world_state == anchor_target.anchored_state:
+		_hide_resistance_feedback()
+		return
+	var expected_position := _director.get_target_position_for_state(anchor_target, world_state)
+	var expected_scale := _director.get_target_scale_for_state(anchor_target, world_state)
+	_resistance_ghost.position = expected_position
+	_resistance_ghost.rotation = anchor_target.rotation
+	_resistance_ghost.scale = expected_scale
+
+	var actual_marker := anchor_target.position + Vector3(0.0, 1.9 * anchor_target.scale.y, 0.0)
+	var expected_marker := expected_position + Vector3(0.0, 1.9 * expected_scale.y, 0.0)
+	var marker_distance := actual_marker.distance_to(expected_marker)
+	_resistance_trace.position = (actual_marker + expected_marker) * 0.5
+	_resistance_trace.scale = Vector3(1.0, 1.0, marker_distance)
+	_resistance_trace.look_at(to_global(expected_marker), Vector3.UP)
+	_resistance_ghost.visible = true
+	_resistance_trace.visible = marker_distance > 0.02
+	resistance_feedback_active = true
+	_resistance_feedback_elapsed = 0.0
+	_set_resistance_feedback_alpha(0.26)
+
+
+func _update_resistance_feedback(delta: float) -> void:
+	if not resistance_feedback_active:
+		return
+	_resistance_feedback_elapsed += delta
+	var fade_progress := clampf(
+		(_resistance_feedback_elapsed - 1.15) / (RESISTANCE_FEEDBACK_DURATION - 1.15),
+		0.0,
+		1.0
+	)
+	_set_resistance_feedback_alpha(lerpf(0.26, 0.0, fade_progress))
+	if _resistance_feedback_elapsed >= RESISTANCE_FEEDBACK_DURATION:
+		_hide_resistance_feedback()
+
+
+func _hide_resistance_feedback() -> void:
+	resistance_feedback_active = false
+	if is_instance_valid(_resistance_ghost):
+		_resistance_ghost.visible = false
+	if is_instance_valid(_resistance_trace):
+		_resistance_trace.visible = false
+
+
+func _set_resistance_feedback_alpha(alpha: float) -> void:
+	if not is_instance_valid(_resistance_material):
+		return
+	var color := _resistance_material.albedo_color
+	color.a = alpha
+	_resistance_material.albedo_color = color
 
 
 func _create_completion_overlay() -> void:

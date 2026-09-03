@@ -54,8 +54,13 @@ func _test_objective_flow() -> void:
 	_expect(not objective.try_collect_fragment(true), "Fragment collected before learning the law")
 	objective.on_world_state_changed(0, 2)
 	_expect(
+		objective.current_objective == ObjectiveManager.ObjectiveState.LEARN_LAW,
+		"ANCHOR appeared before the complete four-state law was demonstrated"
+	)
+	objective.on_world_state_changed(2, 3)
+	_expect(
 		objective.current_objective == ObjectiveManager.ObjectiveState.DISCOVER_ANCHOR,
-		"Reaching State 2 did not reveal ANCHOR"
+		"Reaching State 3 did not reveal ANCHOR"
 	)
 	objective.on_anchor_acquired()
 	objective.on_anchor_applied(null, 2)
@@ -113,17 +118,30 @@ func _test_complete_spatial_solution() -> void:
 		puzzle._process(0.0)
 		_expect(not puzzle.fragment_collectible, "Normal State %d exposed the Fragment" % normal_state)
 
+	# Reaching State 3 first completes the invariant lesson and reveals ANCHOR.
+	world_state.set_state(3)
+	director.apply_state_immediately(3)
+	puzzle._process(0.0)
+	_expect(puzzle.anchor_pickup.available, "Completing the four-state lesson did not reveal ANCHOR")
+	_expect(
+		puzzle.anchor_pickup.get_node("AnchorRevealRings").visible,
+		"ANCHOR reveal lacked geometric feedback"
+	)
+
 	# Normal State 2 leaves the gate and receiver visibly misaligned.
 	world_state.set_state(2)
 	director.apply_state_immediately(2)
 	puzzle._process(0.0)
 	_expect(puzzle.alignment_error > 0.9, "Normal State 2 progression accidentally aligned the puzzle")
 	_expect(not puzzle.fragment_collectible, "Fragment became reachable without ANCHOR")
-	_expect(puzzle.anchor_pickup.available, "Learning the law did not reveal the ANCHOR pickup")
 	var normal_mid_state_two_position := normal_mid.position
 
 	_expect(puzzle.anchor_pickup.interact(puzzle), "ANCHOR pickup interaction failed")
 	_expect(operator.anchor_acquired, "Pickup did not grant ANCHOR")
+	_expect(
+		puzzle.anchor_target.get_node("EligibleRelationRing").visible,
+		"Eligible ANCHOR target lacked a distinct relation marker"
+	)
 
 	# Retreat to State 1, preserve the gate's relation, then advance to State 2.
 	world_state.set_state(1)
@@ -133,7 +151,26 @@ func _test_complete_spatial_solution() -> void:
 	await _advance_director(director, director.transition_duration)
 	var anchored_position := puzzle.anchor_target.position
 	var anchored_scale := puzzle.anchor_target.scale
+	_expect(
+		puzzle.anchor_target.get_node("AnchorInvariantRings").visible,
+		"Applied ANCHOR lacked its invariant marker"
+	)
 	world_state.set_state(2)
+	_expect(puzzle.resistance_feedback_active, "Anchored gate did not signal resistance")
+	var relation_echo := puzzle.get_node("UnanchoredRelationEcho") as Node3D
+	_expect(relation_echo.visible, "The gate's normal State-2 relation was not visualized")
+	_expect(
+		relation_echo.position.is_equal_approx(director.get_target_position_for_state(puzzle.anchor_target, 2)),
+		"Resistance echo did not show the deterministic unanchored target"
+	)
+	_expect(
+		not arena.get_transformable_nodes().has(relation_echo),
+		"Presentation-only resistance echo entered spatial target resolution"
+	)
+	_expect(
+		relation_echo.find_children("*", "CollisionObject3D", true, false).is_empty(),
+		"Presentation-only resistance echo introduced gameplay collision"
+	)
 	await _advance_director(director, director.transition_duration)
 	puzzle._process(0.0)
 	_expect(puzzle.anchor_target.position.is_equal_approx(anchored_position), "Anchored gate followed State 2 position")
@@ -142,6 +179,10 @@ func _test_complete_spatial_solution() -> void:
 	_expect(normal_mid.position.is_equal_approx(normal_mid_state_two_position), "Normal mid landmark did not restore State 2")
 	_expect(puzzle.alignment_error <= AnchorPuzzleController.ALIGNMENT_TOLERANCE, "Cross-state relation did not align")
 	_expect(puzzle.fragment_collectible, "Intended ANCHOR sequence did not expose the Fragment")
+	_expect(
+		puzzle.fragment.get_node("StabilizedRelationRings").visible,
+		"Valid cross-state alignment lacked stabilization feedback"
+	)
 
 	# Forward, backward, and rapid reversal keep the exception stable.
 	for state in [3, 2, 1, 0, 1, 2]:
@@ -159,6 +200,10 @@ func _test_complete_spatial_solution() -> void:
 	_expect(puzzle.try_collect_fragment(), "Aligned Fragment could not be collected")
 	_expect(not puzzle.try_collect_fragment(), "Fragment could be collected twice")
 	_expect(objective.exit_active and puzzle.puzzle_exit.active, "Fragment did not unlock the Exit")
+	_expect(
+		puzzle.puzzle_exit.get_node("ExitActivationBeacon").visible,
+		"Active Exit lacked a spatially visible beacon"
+	)
 	_expect(puzzle.puzzle_exit.interact(puzzle), "Active Exit did not complete the run")
 	_expect(objective.current_objective == ObjectiveManager.ObjectiveState.RUN_COMPLETE, "Run did not complete")
 	_expect(not player.input_enabled and not interaction.enabled, "Completion did not freeze gameplay input")

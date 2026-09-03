@@ -23,7 +23,7 @@ var exit_active: bool = false
 
 
 func on_world_state_changed(_previous: int, current: int) -> void:
-	if current_objective == ObjectiveState.LEARN_LAW and current >= 2:
+	if current_objective == ObjectiveState.LEARN_LAW and current >= 3:
 		_set_objective(ObjectiveState.DISCOVER_ANCHOR)
 		anchor_pickup_revealed.emit()
 
